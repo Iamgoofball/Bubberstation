@@ -11,12 +11,18 @@
 	var/list/offset_x
 	/// Offsets to apply on the y axis for each direction
 	var/list/offset_y
+	/// Rotation offsets to apply for each direction
+	var/list/rotation_offset
+	/// Alpha offsets to apply for each direction
+	var/list/alpha_offset
 
 /datum/worn_feature_offset/New(
 	obj/item/bodypart/attached_part,
 	feature_key,
 	list/offset_x = list("south" = 0),
 	list/offset_y = list("south" = 0),
+	list/rotation_offset = list("south" = 0),
+	list/alpha_offset = list("south" = 255),
 )
 	attached_part.feature_offsets[feature_key] = src
 	owner = attached_part.owner
@@ -24,8 +30,10 @@
 	src.feature_key = feature_key
 	src.offset_x = offset_x
 	src.offset_y = offset_y
+	src.rotation_offset = rotation_offset
+	src.alpha_offset = alpha_offset
 
-	if (length(offset_x) <= 1 && length(offset_y) <= 1)
+	if (length(offset_x) <= 1 && length(offset_y) <= 1 && length(rotation_offset) <= 1 && length(alpha_offset) <= 1)
 		return // We don't need to do any extra signal handling
 
 	if (!isnull(owner))
@@ -38,13 +46,17 @@
 	current_dir = dir2text(current_dir)
 	var/x = length(offset_x) ? ((current_dir in offset_x) ? offset_x[current_dir] : offset_x["south"]) : 0
 	var/y = length(offset_y) ? ((current_dir in offset_y) ? offset_y[current_dir] : offset_y["south"]) : 0
-	return list("x" = x, "y" = y)
+	var/rotation = length(rotation_offset) ? ((current_dir in rotation_offset) ? rotation_offset[current_dir] : rotation_offset["south"]) : 0
+	var/alpha = length(alpha_offset) ? ((current_dir in alpha_offset) ? alpha_offset[current_dir] : alpha_offset["south"]) : 255
+	return list("x" = x, "y" = y, "rotation" = rotation, "alpha" = alpha)
 
 /// Applies the current offset to a provided overlay image
 /datum/worn_feature_offset/proc/apply_offset(image/overlay)
 	var/list/offset = get_offset()
 	overlay.pixel_x += offset["x"]
 	overlay.pixel_y += offset["y"]
+	overlay.alpha = offset["alpha"]
+	overlay.transform.Turn(offset["rotation"])
 
 /// When the owner of the bodypart changes, update our signal registrations
 /datum/worn_feature_offset/proc/changed_owner(obj/item/bodypart/part, mob/living/new_owner, mob/living/old_owner)
